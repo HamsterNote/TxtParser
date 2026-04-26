@@ -253,7 +253,7 @@ Wave 2: 5) browser page demo, 6) Jest regression coverage, 7) README refresh
 
   **Commit**: YES | Message: `feat(txt-parser): add UTF-8 parser core` | Files: `src/index.ts`, `src/__tests__/txtParser.test.ts`, `package.json`, `rolldown.config.ts`
 
-- [ ] 5. Build the static browser page demo under `demo/`
+- [x] 5. Build the static browser page demo under `demo/`
 
   **What to do**: Add `demo/index.html`, `demo/demo.js`, and `demo/demo.css`. Keep the demo static and framework-free. `demo/index.html` must include an import map with `@hamster-note/document-parser` resolving to `https://esm.sh/@hamster-note/document-parser@0.3.1` and `@hamster-note/types` resolving to `https://esm.sh/@hamster-note/types@0.7.0`, then load `./demo.js` as a module. The page must contain a textarea `[data-role="source-input"]`, buttons `[data-action="inspect"]`, `[data-action="encode"]`, `[data-action="decode"]`, a status node `[data-role="status"]`, a summary node `[data-role="summary"]`, a pre block `[data-role="inspection-output"]`, a pre block `[data-role="document-output"]`, and a pre block `[data-role="decode-output"]`. `demo.js` must import `TxtParser` from `../dist/index.js` and `IntermediateDocument` from `@hamster-note/types`; build a `Blob` from textarea content using `text/plain;charset=utf-8`; run inspect on demand; encode to `IntermediateDocument`, serialize it for display, and cache the parsed/encoded document for decode; decode back to UTF-8 text and render it into `[data-role="decode-output"]`. Initial UI state must be `status = 'Idle'`, `summary = 'Enter text, then inspect or encode it.'`, and the decode button disabled until encode succeeds. Set status text to `Inspect complete`, `Encode complete`, and `Decode complete` on the corresponding successful actions. If encode/decode fails, render the thrown message into the status area and keep prior successful output untouched.
   **Must NOT do**: Do not add OCR/image controls, file-upload-only flows, app routers, or any dependency beyond the static server already added in Task 1.
@@ -292,7 +292,7 @@ Wave 2: 5) browser page demo, 6) Jest regression coverage, 7) README refresh
 
   **Commit**: NO | Message: `n/a` | Files: `demo/index.html`, `demo/demo.js`, `demo/demo.css`
 
-- [ ] 6. Replace placeholder coverage with the full `TxtParser` Jest regression matrix
+- [x] 6. Replace placeholder coverage with the full `TxtParser` Jest regression matrix
 
   **What to do**: Delete or fully replace `src/__tests__/index.test.ts` with `src/__tests__/txtParser.test.ts` so the suite reflects real parser behavior instead of workspace initialization. The final test file must cover: public exports, `TxtParser.ext`/`exts`, inspect behavior for `ArrayBuffer`, `Uint8Array`, and `Blob`, successful encode for `'Hello, world!'`, `'你好'`, `''`, and `'Line 1\nLine 2'`, UTF-8 BOM acceptance, invalid UTF-8 rejection using `new Uint8Array([0xC3, 0x28])`, decode success from documents produced by `TxtParser.encode()`, decode success for an empty-text document, and exact no-page decode failure. Use `IntermediateDocument.serialize()` for structure assertions where practical so the test verifies ids, page count, text content, and geometry-related defaults.
   **Must NOT do**: Do not keep the old assertion claiming the package has no parsing capability, and do not snapshot large opaque objects without asserting the specific fields this plan fixes.
@@ -331,7 +331,7 @@ Wave 2: 5) browser page demo, 6) Jest regression coverage, 7) README refresh
 
   **Commit**: NO | Message: `n/a` | Files: `src/__tests__/txtParser.test.ts`
 
-- [ ] 7. Refresh README for the new runtime, demo, and UTF-8 scope
+- [x] 7. Refresh README for the new runtime, demo, and UTF-8 scope
 
   **What to do**: Rewrite `README.md` so it no longer claims the package lacks a TXT parsing runtime. Document the exported parser (`TxtParser`, `inspectTxt`), the UTF-8-only scope, the available commands (`npm run typecheck`, `npm test -- --runInBand`, `npm run build`, `npm run dev`), and the demo entrypoint `demo/index.html`. Include one concise code sample showing `const doc = await TxtParser.encode(new TextEncoder().encode('Hello'))` and `const text = new TextDecoder().decode(await TxtParser.decode(doc))`. State explicitly that non-UTF-8 input fails and that this phase does not support other encodings.
   **Must NOT do**: Do not promise unsupported encodings, parser registration automation, or published demo hosting.
