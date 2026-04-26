@@ -1,0 +1,6 @@
+Task 3 Verification
+Happy-path encode: PASS
+BOM handling: PASS
+Invalid UTF-8 rejection: PASS
+Build: PASS
+Typecheck: PASS
