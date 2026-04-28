@@ -29,8 +29,14 @@ jobs:
           node-version: 20
           cache: yarn
 
+      - name: Prepare Yarn
+        run: |
+          corepack enable
+          corepack prepare yarn@1.22.22 --activate
+          yarn config set registry https://registry.npmjs.org/
+
       - name: Install dependencies
-        run: yarn install --frozen-lockfile
+        run: yarn install --frozen-lockfile --non-interactive
 
       - name: Type-check
         run: yarn typecheck
