@@ -1,0 +1,5 @@
+Task 4 Verification
+Round-trip decode: PASS
+No-page failure: PASS
+Build: PASS
+Typecheck: PASS

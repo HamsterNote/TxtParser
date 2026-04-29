@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TxtParser Demo</title>
+  <link rel="stylesheet" href="./demo.css">
+  <script type="importmap">
+  {
+    "imports": {
+      "@hamster-note/document-parser": "https://esm.sh/@hamster-note/document-parser@0.3.1",
+      "@hamster-note/types": "https://esm.sh/@hamster-note/types@0.7.0"
+    }
+  }
+  </script>
+</head>
+<body>
+  <div class="container">
+    <h1>TxtParser Demo</h1>
+    <textarea data-role="source-input" placeholder="Enter text here..."></textarea>
+    
+    <div class="buttons">
+      <button data-action="inspect">Inspect</button>
+      <button data-action="encode">Encode</button>
+      <button data-action="decode" disabled>Decode</button>
+    </div>
+    
+    <div class="status" data-role="status">Idle</div>
+    <div class="summary" data-role="summary">Enter text, then inspect or encode it.</div>
+    
+    <div class="output-section">
+      <h3>Inspection Output</h3>
+      <pre data-role="inspection-output"></pre>
+    </div>
+    
+    <div class="output-section">
+      <h3>Document Output</h3>
+      <pre data-role="document-output"></pre>
+    </div>
+    
+    <div class="output-section">
+      <h3>Decode Output</h3>
+      <pre data-role="decode-output"></pre>
+    </div>
+  </div>
+  
+  <script type="module" src="./demo.js"></script>
+</body>
+</html>

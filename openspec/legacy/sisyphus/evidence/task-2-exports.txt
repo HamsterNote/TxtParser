@@ -1,0 +1,5 @@
+Task 2 Verification
+Exports: PASS
+Inspect behavior: PASS
+Build: PASS
+Typecheck: PASS
