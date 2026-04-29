@@ -1,6 +1,6 @@
 {
   "name": "@hamster-note/txt-parser",
-  "version": "0.5.1",
+  "version": "0.1.0",
   "description": "TXT parser package workspace for HamsterNote.",
   "scripts": {
     "dev": "http-server -p 8000",
