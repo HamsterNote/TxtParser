@@ -23,8 +23,21 @@ export interface TxtParserInspection {
   supportedExtensions: string[]
 }
 
+class TxtParserError extends Error {
+  constructor(message: string, options?: ErrorOptions) {
+    super(message, options)
+    this.name = 'TxtParserError'
+  }
+}
+
 function isBlob(input: unknown): input is Blob {
-  return typeof input === 'object' && input !== null && 'type' in input && 'size' in input
+  return (
+    typeof input === 'object' &&
+    input !== null &&
+    'type' in input &&
+    'size' in input &&
+    typeof (input as Blob).size === 'number'
+  )
 }
 
 function detectInputKind(input: ParserInput): TxtParserInputKind {
@@ -130,8 +143,8 @@ export class TxtParser extends DocumentParser {
         outline: undefined,
         pagesMap,
       })
-    } catch (_error) {
-      throw new Error('TxtParser 编码失败：输入不是有效的 UTF-8 TXT 数据')
+    } catch (error) {
+      throw new TxtParserError('TxtParser 编码失败：输入不是有效的 UTF-8 TXT 数据', { cause: error })
     }
   }
 
@@ -139,7 +152,7 @@ export class TxtParser extends DocumentParser {
     try {
       const pages = await intermediateDocument.pages
       if (pages.length === 0) {
-        throw new Error('TxtParser 解码失败：中间文档不包含可解码页面')
+        throw new TxtParserError('TxtParser 解码失败：中间文档不包含可解码页面')
       }
 
       const pageTexts: string[] = []
@@ -153,11 +166,11 @@ export class TxtParser extends DocumentParser {
       const encoder = new TextEncoder()
       return encoder.encode(content).buffer
     } catch (error) {
-      if (error instanceof Error && error.message === 'TxtParser 解码失败：中间文档不包含可解码页面') {
+      if (error instanceof TxtParserError) {
         throw error
       }
       const message = error instanceof Error ? error.message : String(error)
-      throw new Error(`TxtParser 解码失败：${message}`)
+      throw new TxtParserError(`TxtParser 解码失败：${message}`)
     }
   }
 
@@ -165,7 +178,7 @@ export class TxtParser extends DocumentParser {
     return TxtParser.encode(input)
   }
 
-  async decode(intermediateDocument: import('@hamster-note/types').IntermediateDocument): Promise<ParserInput> {
+  async decode(intermediateDocument: IntermediateDocument): Promise<ParserInput> {
     return TxtParser.decode(intermediateDocument)
   }
 }

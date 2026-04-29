@@ -9,6 +9,7 @@
 - **Deterministic encoding** — Convert UTF-8 bytes into `IntermediateDocument` with stable IDs
 - **Deterministic decoding** — Reconstruct UTF-8 bytes from `IntermediateDocument`
 - **UTF-8 only** — Non-UTF-8 input will fail with explicit error messages
+- **BOM handling** — UTF-8 BOM (byte order mark) is silently stripped during encode
 
 ## Scope
 
@@ -52,7 +53,7 @@ const info = await inspectTxt(new Blob(['Hello'], { type: 'text/plain' }))
 A static browser demo is available at `demo/index.html`. Start the demo server:
 
 ```bash
-yarn dev
+yarn build && yarn dev
 ```
 
 Then open `http://localhost:8000/demo/index.html` in your browser.

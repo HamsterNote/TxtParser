@@ -91,6 +91,18 @@ describe('TxtParser', () => {
       const invalid = new Uint8Array([0xC3, 0x28])
       await expect(TxtParser.encode(invalid)).rejects.toThrow('TxtParser 编码失败：')
     })
+
+    it('preserves original error as cause when encode fails', async () => {
+      const invalid = new Uint8Array([0xC3, 0x28])
+      try {
+        await TxtParser.encode(invalid)
+        fail('Expected encode to throw')
+      } catch (error) {
+        expect(error).toBeInstanceOf(Error)
+        expect((error as Error).message).toBe('TxtParser 编码失败：输入不是有效的 UTF-8 TXT 数据')
+        expect((error as Error).cause).toBeDefined()
+      }
+    })
   })
 
   describe('decode', () => {
@@ -148,6 +160,24 @@ describe('TxtParser', () => {
       expect(text.dir).toBe('ltr')
       expect(text.skew).toBe(0)
       expect(text.isEOL).toBe(true)
+    })
+  })
+
+  describe('instance methods', () => {
+    it('instance encode delegates to static encode', async () => {
+      const parser = new TxtParser()
+      const doc = await parser.encode(new TextEncoder().encode('Instance test'))
+      const texts = await (await doc.pages)[0].getTexts()
+      expect(texts[0].content).toBe('Instance test')
+    })
+
+    it('instance decode delegates to static decode', async () => {
+      const parser = new TxtParser()
+      const source = 'Round-trip via instance'
+      const doc = await parser.encode(new TextEncoder().encode(source))
+      const decoded = await parser.decode(doc)
+      const text = new TextDecoder('utf-8').decode(decoded as ArrayBuffer)
+      expect(text).toBe(source)
     })
   })
 })
