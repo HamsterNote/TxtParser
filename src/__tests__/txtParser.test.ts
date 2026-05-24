@@ -4,7 +4,33 @@ import {
   TxtParser,
   inspectTxt,
 } from '../index'
-import { IntermediateDocument, IntermediatePageMap } from '@hamster-note/types'
+import {
+  IntermediateDocument,
+  IntermediatePageMap,
+  IntermediatePage,
+  IntermediateText,
+  IntermediateImage,
+  TextDir,
+} from '@hamster-note/types'
+
+function isIntermediateTextContent(content: unknown): content is IntermediateText {
+  return (
+    content instanceof IntermediateText ||
+    (typeof content === 'object' &&
+      content !== null &&
+      'content' in content &&
+      typeof (content as { content?: unknown }).content === 'string' &&
+      'fontSize' in content &&
+      typeof (content as { fontSize?: unknown }).fontSize === 'number' &&
+      'fontFamily' in content &&
+      typeof (content as { fontFamily?: unknown }).fontFamily === 'string')
+  )
+}
+
+async function getTextContents(page: IntermediatePage): Promise<IntermediateText[]> {
+  const content = await page.getContent()
+  return content.filter(isIntermediateTextContent)
+}
 
 describe('TxtParser', () => {
   describe('exports', () => {
@@ -56,7 +82,7 @@ describe('TxtParser', () => {
       const pages = await doc.pages
       expect(pages.length).toBe(1)
       expect(pages[0].id).toBe('txt-parser-page-1')
-      const texts = await pages[0].getTexts()
+      const texts = await getTextContents(pages[0])
       expect(texts.length).toBe(1)
       expect(texts[0].content).toBe('Hello, world!')
       expect(texts[0].id).toBe('txt-parser-text-1')
@@ -64,26 +90,26 @@ describe('TxtParser', () => {
 
     it('encodes Chinese text', async () => {
       const doc = await TxtParser.encode(new TextEncoder().encode('你好'))
-      const texts = await (await doc.pages)[0].getTexts()
+      const texts = await getTextContents((await doc.pages)[0])
       expect(texts[0].content).toBe('你好')
     })
 
     it('encodes empty content', async () => {
       const doc = await TxtParser.encode(new TextEncoder().encode(''))
-      const texts = await (await doc.pages)[0].getTexts()
+      const texts = await getTextContents((await doc.pages)[0])
       expect(texts[0].content).toBe('')
     })
 
     it('encodes multiline text', async () => {
       const doc = await TxtParser.encode(new TextEncoder().encode('Line 1\nLine 2'))
-      const texts = await (await doc.pages)[0].getTexts()
+      const texts = await getTextContents((await doc.pages)[0])
       expect(texts[0].content).toBe('Line 1\nLine 2')
     })
 
     it('accepts UTF-8 BOM', async () => {
       const bom = new Uint8Array([0xEF, 0xBB, 0xBF, 0x41])
       const doc = await TxtParser.encode(bom)
-      const texts = await (await doc.pages)[0].getTexts()
+      const texts = await getTextContents((await doc.pages)[0])
       expect(texts[0].content).toBe('A')
     })
 
@@ -138,6 +164,94 @@ describe('TxtParser', () => {
       })
       await expect(TxtParser.decode(doc)).rejects.toThrow('TxtParser 解码失败：中间文档不包含可解码页面')
     })
+
+    it('ignores non-text page content while preserving text order', async () => {
+      const textA = new IntermediateText({
+        id: 'text-a',
+        content: 'A',
+        fontSize: 1,
+        fontFamily: 'monospace',
+        fontWeight: 400,
+        italic: false,
+        color: '#000000',
+        polygon: [
+          [0, 0],
+          [1, 0],
+          [1, 1],
+          [0, 1],
+        ],
+        lineHeight: 1,
+        ascent: 0.8,
+        descent: 0.2,
+        dir: TextDir.LTR,
+        skew: 0,
+        isEOL: true,
+      })
+
+      const textB = new IntermediateText({
+        id: 'text-b',
+        content: 'B',
+        fontSize: 1,
+        fontFamily: 'monospace',
+        fontWeight: 400,
+        italic: false,
+        color: '#000000',
+        polygon: [
+          [0, 0],
+          [1, 0],
+          [1, 1],
+          [0, 1],
+        ],
+        lineHeight: 1,
+        ascent: 0.8,
+        descent: 0.2,
+        dir: TextDir.LTR,
+        skew: 0,
+        isEOL: true,
+      })
+
+      const nonText = new IntermediateImage({
+        id: 'image-1',
+        src: 'data:image/png;base64,placeholder',
+        polygon: [
+          [0, 0],
+          [10, 0],
+          [10, 10],
+          [0, 10],
+        ],
+        opacity: 1,
+      })
+
+      const page = new IntermediatePage({
+        id: 'mixed-page',
+        number: 1,
+        width: 10,
+        height: 10,
+        content: [textA, nonText, textB],
+        paragraphs: [],
+        thumbnail: undefined,
+      })
+
+      const pagesMap = IntermediatePageMap.makeByInfoList([
+        {
+          id: 'mixed-page',
+          pageNumber: 1,
+          size: { x: 10, y: 10 },
+          getData: async () => page,
+        },
+      ])
+
+      const doc = new IntermediateDocument({
+        id: 'mixed-doc',
+        title: 'Mixed',
+        outline: undefined,
+        pagesMap,
+      })
+
+      const decoded = await TxtParser.decode(doc)
+      const text = new TextDecoder('utf-8').decode(decoded as ArrayBuffer)
+      expect(text).toBe('AB')
+    })
   })
 
   describe('document structure', () => {
@@ -147,7 +261,8 @@ describe('TxtParser', () => {
       const page = pages[0]
       expect(page.width).toBe(5)
       expect(page.height).toBe(2)
-      const texts = await page.getTexts()
+      const pageContent = await page.getContent()
+      const texts = pageContent.filter(isIntermediateTextContent)
       const text = texts[0]
       expect(text.fontSize).toBe(1)
       expect(text.fontFamily).toBe('monospace')
@@ -167,7 +282,7 @@ describe('TxtParser', () => {
     it('instance encode delegates to static encode', async () => {
       const parser = new TxtParser()
       const doc = await parser.encode(new TextEncoder().encode('Instance test'))
-      const texts = await (await doc.pages)[0].getTexts()
+      const texts = await getTextContents((await doc.pages)[0])
       expect(texts[0].content).toBe('Instance test')
     })
 
