@@ -5,6 +5,23 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，
 本项目遵循 [语义化版本控制](https://semver.org/lang/zh-CN/)。
 
+## [0.2.0] - 2026-06-01
+
+### 变更
+
+- 升级 `@hamster-note/types` 到 0.8.0，采用 `getContent()` API 替代 `getTexts()`
+- 开发服务器端口从 8000 更新为 8166
+
+### 新增
+
+- 移动端调试工具 vconsole，开发环境自动启用
+- 导出 `isIntermediateTextContent` 类型守卫函数
+- 混合内容（文本+图像）解码测试用例
+
+### 重构
+
+- 消除 `isIntermediateTextContent` 函数的重复定义，统一从主模块导入
+
 ## [0.1.0] - 2026-04-29
 
 ### 新增
