@@ -51,6 +51,20 @@ function resolveMimeType(input: ParserInput): string {
   return 'text/plain'
 }
 
+export function isIntermediateTextContent(content: unknown): content is IntermediateText {
+  return (
+    content instanceof IntermediateText ||
+    (typeof content === 'object' &&
+      content !== null &&
+      'content' in content &&
+      typeof (content as { content?: unknown }).content === 'string' &&
+      'fontSize' in content &&
+      typeof (content as { fontSize?: unknown }).fontSize === 'number' &&
+      'fontFamily' in content &&
+      typeof (content as { fontFamily?: unknown }).fontFamily === 'string')
+  )
+}
+
 export class TxtParser extends DocumentParser {
   static readonly exts = ['txt'] as const
   static readonly ext = 'txt' as const
@@ -130,7 +144,7 @@ export class TxtParser extends DocumentParser {
               number: 1,
               width,
               height,
-              texts: [text],
+              content: [text],
               paragraphs: [paragraph],
               thumbnail: undefined,
             }),
@@ -157,7 +171,8 @@ export class TxtParser extends DocumentParser {
 
       const pageTexts: string[] = []
       for (const page of pages) {
-        const texts = await page.getTexts()
+        const content = await page.getContent()
+        const texts = content.filter(isIntermediateTextContent)
         const pageContent = texts.map((text) => text.content).join('')
         pageTexts.push(pageContent)
       }

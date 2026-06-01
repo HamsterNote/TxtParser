@@ -1,5 +1,9 @@
 import { TxtParser } from '../dist/index.js'
 import { IntermediateDocument } from '@hamster-note/types'
+import VConsole from 'vconsole'
+
+// 开发环境启用 vConsole，方便移动端调试
+new VConsole()
 
 const sourceInput = document.querySelector('[data-role="source-input"]')
 const inspectBtn = document.querySelector('[data-action="inspect"]')
