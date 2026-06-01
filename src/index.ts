@@ -51,7 +51,7 @@ function resolveMimeType(input: ParserInput): string {
   return 'text/plain'
 }
 
-function isIntermediateTextContent(content: unknown): content is IntermediateText {
+export function isIntermediateTextContent(content: unknown): content is IntermediateText {
   return (
     content instanceof IntermediateText ||
     (typeof content === 'object' &&

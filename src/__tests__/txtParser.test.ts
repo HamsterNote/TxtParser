@@ -3,6 +3,7 @@ import {
   txtParserWorkspaceStatus,
   TxtParser,
   inspectTxt,
+  isIntermediateTextContent,
 } from '../index'
 import {
   IntermediateDocument,
@@ -12,20 +13,6 @@ import {
   IntermediateImage,
   TextDir,
 } from '@hamster-note/types'
-
-function isIntermediateTextContent(content: unknown): content is IntermediateText {
-  return (
-    content instanceof IntermediateText ||
-    (typeof content === 'object' &&
-      content !== null &&
-      'content' in content &&
-      typeof (content as { content?: unknown }).content === 'string' &&
-      'fontSize' in content &&
-      typeof (content as { fontSize?: unknown }).fontSize === 'number' &&
-      'fontFamily' in content &&
-      typeof (content as { fontFamily?: unknown }).fontFamily === 'string')
-  )
-}
 
 async function getTextContents(page: IntermediatePage): Promise<IntermediateText[]> {
   const content = await page.getContent()
