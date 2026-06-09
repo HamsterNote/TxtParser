@@ -1,11 +1,11 @@
 import { DocumentParser, type ParserInput } from '@hamster-note/document-parser'
 import {
   IntermediateDocument,
-  IntermediatePageMap,
   IntermediatePage,
-  IntermediateText,
+  IntermediatePageMap,
   IntermediateParagraph,
-  TextDir,
+  IntermediateText,
+  TextDir
 } from '@hamster-note/types'
 
 export const TXT_PARSER_PACKAGE_NAME = '@hamster-note/txt-parser' as const
@@ -51,7 +51,9 @@ function resolveMimeType(input: ParserInput): string {
   return 'text/plain'
 }
 
-export function isIntermediateTextContent(content: unknown): content is IntermediateText {
+export function isIntermediateTextContent(
+  content: unknown
+): content is IntermediateText {
   return (
     content instanceof IntermediateText ||
     (typeof content === 'object' &&
@@ -63,6 +65,12 @@ export function isIntermediateTextContent(content: unknown): content is Intermed
       'fontFamily' in content &&
       typeof (content as { fontFamily?: unknown }).fontFamily === 'string')
   )
+}
+
+function joinPageTextContent(texts: IntermediateText[]): string {
+  // 外部生成的 IntermediateDocument 常把连续文字拆成单字符 Text。
+  // TXT 解码只还原纯文本内容，页内 Text 之间不能额外补空格或其它分隔符。
+  return texts.map((text) => text.content).join('')
 }
 
 export class TxtParser extends DocumentParser {
@@ -83,10 +91,11 @@ export class TxtParser extends DocumentParser {
     return {
       byteLength,
       kind,
-      message: 'TxtParser 支持 UTF-8 TXT 编码与解码；inspect 不会修改输入内容。',
+      message:
+        'TxtParser 支持 UTF-8 TXT 编码与解码；inspect 不会修改输入内容。',
       mimeType,
       status: 'txt-supported',
-      supportedExtensions: ['txt'],
+      supportedExtensions: ['txt']
     }
   }
 
@@ -98,7 +107,10 @@ export class TxtParser extends DocumentParser {
 
       const lines = content.split(/\r\n|\r|\n/)
       const lineCount = lines.length
-      const longestLineLength = lines.reduce((max, line) => Math.max(max, line.length), 0)
+      const longestLineLength = lines.reduce(
+        (max, line) => Math.max(max, line.length),
+        0
+      )
       const width = Math.max(1, longestLineLength)
       const height = Math.max(1, lineCount)
 
@@ -114,14 +126,14 @@ export class TxtParser extends DocumentParser {
           [0, 0],
           [width, 0],
           [width, height],
-          [0, height],
+          [0, height]
         ],
         lineHeight: 1,
         ascent: 0.8,
         descent: 0.2,
         dir: TextDir.LTR,
         skew: 0,
-        isEOL: true,
+        isEOL: true
       })
 
       const paragraph = new IntermediateParagraph({
@@ -130,7 +142,7 @@ export class TxtParser extends DocumentParser {
         y: 0,
         width,
         height,
-        textIds: ['txt-parser-text-1'],
+        textIds: ['txt-parser-text-1']
       })
 
       const pagesMap = IntermediatePageMap.makeByInfoList([
@@ -146,23 +158,28 @@ export class TxtParser extends DocumentParser {
               height,
               content: [text],
               paragraphs: [paragraph],
-              thumbnail: undefined,
-            }),
-        },
+              thumbnail: undefined
+            })
+        }
       ])
 
       return new IntermediateDocument({
         id: 'txt-parser-document',
         title: 'TXT Document',
         outline: undefined,
-        pagesMap,
+        pagesMap
       })
     } catch (error) {
-      throw new TxtParserError('TxtParser 编码失败：输入不是有效的 UTF-8 TXT 数据', { cause: error })
+      throw new TxtParserError(
+        'TxtParser 编码失败：输入不是有效的 UTF-8 TXT 数据',
+        { cause: error }
+      )
     }
   }
 
-  static async decode(intermediateDocument: IntermediateDocument): Promise<ParserInput> {
+  static async decode(
+    intermediateDocument: IntermediateDocument
+  ): Promise<ParserInput> {
     try {
       const pages = await intermediateDocument.pages
       if (pages.length === 0) {
@@ -173,7 +190,7 @@ export class TxtParser extends DocumentParser {
       for (const page of pages) {
         const content = await page.getContent()
         const texts = content.filter(isIntermediateTextContent)
-        const pageContent = texts.map((text) => text.content).join('')
+        const pageContent = joinPageTextContent(texts)
         pageTexts.push(pageContent)
       }
 
@@ -193,11 +210,15 @@ export class TxtParser extends DocumentParser {
     return TxtParser.encode(input)
   }
 
-  async decode(intermediateDocument: IntermediateDocument): Promise<ParserInput> {
+  async decode(
+    intermediateDocument: IntermediateDocument
+  ): Promise<ParserInput> {
     return TxtParser.decode(intermediateDocument)
   }
 }
 
-export async function inspectTxt(input: ParserInput): Promise<TxtParserInspection> {
+export async function inspectTxt(
+  input: ParserInput
+): Promise<TxtParserInspection> {
   return TxtParser.inspect(input)
 }
