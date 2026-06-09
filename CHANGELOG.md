@@ -5,6 +5,12 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，
 本项目遵循 [语义化版本控制](https://semver.org/lang/zh-CN/)。
 
+## [0.3.0] - 2026-06-09
+
+### 修复
+
+- 修复字符拆分文本项解码时产生多余空格的问题 (#5)
+
 ## [0.2.0] - 2026-06-01
 
 ### 变更
