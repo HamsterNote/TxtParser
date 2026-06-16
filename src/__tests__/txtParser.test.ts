@@ -101,26 +101,38 @@ describe('TxtParser', () => {
       expect(texts.length).toBe(1)
       expect(texts[0].content).toBe('Hello, world!')
       expect(texts[0].id).toBe('txt-parser-text-1')
+      expect(pages[0].paragraphs.length).toBe(1)
+      expect(pages[0].paragraphs[0].textIds).toEqual(['txt-parser-text-1'])
     })
 
     it('encodes Chinese text', async () => {
       const doc = await TxtParser.encode(new TextEncoder().encode('你好'))
-      const texts = await getTextContents((await doc.pages)[0])
+      const page = (await doc.pages)[0]
+      const texts = await getTextContents(page)
       expect(texts[0].content).toBe('你好')
+      expect(page.paragraphs.length).toBe(1)
     })
 
     it('encodes empty content', async () => {
       const doc = await TxtParser.encode(new TextEncoder().encode(''))
-      const texts = await getTextContents((await doc.pages)[0])
+      const page = (await doc.pages)[0]
+      const texts = await getTextContents(page)
       expect(texts[0].content).toBe('')
+      expect(page.paragraphs.length).toBe(1)
     })
 
-    it('encodes multiline text', async () => {
+    it('encodes multiline text with multiple paragraphs', async () => {
       const doc = await TxtParser.encode(
         new TextEncoder().encode('Line 1\nLine 2')
       )
-      const texts = await getTextContents((await doc.pages)[0])
-      expect(texts[0].content).toBe('Line 1\nLine 2')
+      const page = (await doc.pages)[0]
+      const texts = await getTextContents(page)
+      expect(texts.length).toBe(2)
+      expect(texts[0].content).toBe('Line 1')
+      expect(texts[1].content).toBe('Line 2')
+      expect(page.paragraphs.length).toBe(2)
+      expect(page.paragraphs[0].textIds).toEqual(['txt-parser-text-1'])
+      expect(page.paragraphs[1].textIds).toEqual(['txt-parser-text-2'])
     })
 
     it('accepts UTF-8 BOM', async () => {
@@ -280,6 +292,9 @@ describe('TxtParser', () => {
       const page = pages[0]
       expect(page.width).toBe(5)
       expect(page.height).toBe(2)
+      expect(page.paragraphs.length).toBe(2)
+      expect(page.paragraphs[0].y).toBe(0)
+      expect(page.paragraphs[1].y).toBe(1)
       const pageContent = await page.getContent()
       const texts = pageContent.filter(isIntermediateTextContent)
       const text = texts[0]
@@ -301,8 +316,10 @@ describe('TxtParser', () => {
     it('instance encode delegates to static encode', async () => {
       const parser = new TxtParser()
       const doc = await parser.encode(new TextEncoder().encode('Instance test'))
-      const texts = await getTextContents((await doc.pages)[0])
+      const page = (await doc.pages)[0]
+      const texts = await getTextContents(page)
       expect(texts[0].content).toBe('Instance test')
+      expect(page.paragraphs.length).toBe(1)
     })
 
     it('instance decode delegates to static decode', async () => {
@@ -310,6 +327,42 @@ describe('TxtParser', () => {
       const source = 'Round-trip via instance'
       const doc = await parser.encode(new TextEncoder().encode(source))
       const decoded = await parser.decode(doc)
+      const text = new TextDecoder('utf-8').decode(decoded as ArrayBuffer)
+      expect(text).toBe(source)
+    })
+  })
+
+  describe('paragraphs', () => {
+    it('creates one paragraph per line', async () => {
+      const doc = await TxtParser.encode(
+        new TextEncoder().encode('First\nSecond\nThird')
+      )
+      const page = (await doc.pages)[0]
+      expect(page.paragraphs.length).toBe(3)
+      expect(page.paragraphs[0].textIds).toEqual(['txt-parser-text-1'])
+      expect(page.paragraphs[1].textIds).toEqual(['txt-parser-text-2'])
+      expect(page.paragraphs[2].textIds).toEqual(['txt-parser-text-3'])
+    })
+
+    it('sets correct paragraph geometry', async () => {
+      const doc = await TxtParser.encode(
+        new TextEncoder().encode('AB\nABCDE')
+      )
+      const page = (await doc.pages)[0]
+      expect(page.paragraphs[0].x).toBe(0)
+      expect(page.paragraphs[0].y).toBe(0)
+      expect(page.paragraphs[0].width).toBe(2)
+      expect(page.paragraphs[0].height).toBe(1)
+      expect(page.paragraphs[1].x).toBe(0)
+      expect(page.paragraphs[1].y).toBe(1)
+      expect(page.paragraphs[1].width).toBe(5)
+      expect(page.paragraphs[1].height).toBe(1)
+    })
+
+    it('decodes using paragraph order', async () => {
+      const source = 'Line 1\nLine 2\nLine 3'
+      const doc = await TxtParser.encode(new TextEncoder().encode(source))
+      const decoded = await TxtParser.decode(doc)
       const text = new TextDecoder('utf-8').decode(decoded as ArrayBuffer)
       expect(text).toBe(source)
     })

@@ -13,6 +13,7 @@ const statusEl = document.querySelector('[data-role="status"]')
 const summaryEl = document.querySelector('[data-role="summary"]')
 const inspectionOutput = document.querySelector('[data-role="inspection-output"]')
 const documentOutput = document.querySelector('[data-role="document-output"]')
+const paragraphsOutput = document.querySelector('[data-role="paragraphs-output"]')
 const decodeOutput = document.querySelector('[data-role="decode-output"]')
 
 let lastDocument = null
@@ -38,8 +39,21 @@ encodeBtn.addEventListener('click', async () => {
     lastDocument = await TxtParser.encode(arrayBuffer)
     const serialized = await IntermediateDocument.serialize(lastDocument)
     documentOutput.textContent = JSON.stringify(serialized, null, 2)
+    
+    const pages = await lastDocument.pages
+    const paragraphs = pages[0]?.paragraphs || []
+    const paragraphsInfo = paragraphs.map(p => ({
+      id: p.id,
+      x: p.x,
+      y: p.y,
+      width: p.width,
+      height: p.height,
+      textIds: p.textIds
+    }))
+    paragraphsOutput.textContent = JSON.stringify(paragraphsInfo, null, 2)
+    
     statusEl.textContent = 'Encode complete'
-    summaryEl.textContent = `Document ID: ${lastDocument.id}, Pages: ${lastDocument.pageCount}`
+    summaryEl.textContent = `Document ID: ${lastDocument.id}, Pages: ${lastDocument.pageCount}, Paragraphs: ${paragraphs.length}`
     decodeBtn.disabled = false
   } catch (err) {
     statusEl.textContent = `Error: ${err.message}`
