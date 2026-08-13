@@ -1,9 +1,10 @@
-import { TxtParser } from '../dist/index.js'
 import { IntermediateDocument } from '@hamster-note/types'
-import VConsole from 'vconsole'
+import { TxtParser } from '../dist/index.js'
 
-// 开发环境启用 vConsole，方便移动端调试
-new VConsole()
+if (new URLSearchParams(window.location.search).has('debug')) {
+  const { default: VConsole } = await import('vconsole')
+  new VConsole()
+}
 
 const sourceInput = document.querySelector('[data-role="source-input"]')
 const inspectBtn = document.querySelector('[data-action="inspect"]')
@@ -11,11 +12,20 @@ const encodeBtn = document.querySelector('[data-action="encode"]')
 const decodeBtn = document.querySelector('[data-action="decode"]')
 const statusEl = document.querySelector('[data-role="status"]')
 const summaryEl = document.querySelector('[data-role="summary"]')
-const inspectionOutput = document.querySelector('[data-role="inspection-output"]')
+const inspectionOutput = document.querySelector(
+  '[data-role="inspection-output"]'
+)
 const documentOutput = document.querySelector('[data-role="document-output"]')
+const paragraphsOutput = document.querySelector(
+  '[data-role="paragraphs-output"]'
+)
 const decodeOutput = document.querySelector('[data-role="decode-output"]')
 
 let lastDocument = null
+
+function getErrorMessage(error) {
+  return error instanceof Error ? error.message : String(error)
+}
 
 inspectBtn.addEventListener('click', async () => {
   try {
@@ -26,7 +36,9 @@ inspectBtn.addEventListener('click', async () => {
     statusEl.textContent = 'Inspect complete'
     summaryEl.textContent = `Kind: ${result.kind}, Size: ${result.byteLength} bytes`
   } catch (err) {
-    statusEl.textContent = `Error: ${err.message}`
+    inspectionOutput.textContent = ''
+    summaryEl.textContent = 'Inspection failed'
+    statusEl.textContent = `Error: ${getErrorMessage(err)}`
   }
 })
 
@@ -38,11 +50,31 @@ encodeBtn.addEventListener('click', async () => {
     lastDocument = await TxtParser.encode(arrayBuffer)
     const serialized = await IntermediateDocument.serialize(lastDocument)
     documentOutput.textContent = JSON.stringify(serialized, null, 2)
+    const pages = await lastDocument.pages
+    const paragraphs = pages[0]?.paragraphs ?? []
+    paragraphsOutput.textContent = JSON.stringify(
+      paragraphs.map(({ id, x, y, width, height, textIds }) => ({
+        id,
+        x,
+        y,
+        width,
+        height,
+        textIds
+      })),
+      null,
+      2
+    )
     statusEl.textContent = 'Encode complete'
-    summaryEl.textContent = `Document ID: ${lastDocument.id}, Pages: ${lastDocument.pageCount}`
+    summaryEl.textContent = `Document ID: ${lastDocument.id}, Pages: ${lastDocument.pageCount}, Paragraphs: ${paragraphs.length}`
     decodeBtn.disabled = false
   } catch (err) {
-    statusEl.textContent = `Error: ${err.message}`
+    lastDocument = null
+    decodeBtn.disabled = true
+    documentOutput.textContent = ''
+    paragraphsOutput.textContent = ''
+    decodeOutput.textContent = ''
+    summaryEl.textContent = 'Encoding failed'
+    statusEl.textContent = `Error: ${getErrorMessage(err)}`
   }
 })
 
@@ -55,6 +87,8 @@ decodeBtn.addEventListener('click', async () => {
     statusEl.textContent = 'Decode complete'
     summaryEl.textContent = 'Decoded successfully'
   } catch (err) {
-    statusEl.textContent = `Error: ${err.message}`
+    decodeOutput.textContent = ''
+    summaryEl.textContent = 'Decoding failed'
+    statusEl.textContent = `Error: ${getErrorMessage(err)}`
   }
 })
