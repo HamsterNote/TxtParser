@@ -114,35 +114,47 @@ export class TxtParser extends DocumentParser {
       const width = Math.max(1, longestLineLength)
       const height = Math.max(1, lineCount)
 
-      const text = new IntermediateText({
-        id: 'txt-parser-text-1',
-        content,
-        fontSize: 1,
-        fontFamily: 'monospace',
-        fontWeight: 400,
-        italic: false,
-        color: '#000000',
-        polygon: [
-          [0, 0],
-          [width, 0],
-          [width, height],
-          [0, height]
-        ],
-        lineHeight: 1,
-        ascent: 0.8,
-        descent: 0.2,
-        dir: TextDir.LTR,
-        skew: 0,
-        isEOL: true
-      })
+      const texts: IntermediateText[] = []
+      const paragraphs: IntermediateParagraph[] = []
 
-      const paragraph = new IntermediateParagraph({
-        id: 'txt-parser-paragraph-1',
-        x: 0,
-        y: 0,
-        width,
-        height,
-        textIds: ['txt-parser-text-1']
+      lines.forEach((line, index) => {
+        const textId = `txt-parser-text-${index + 1}`
+        const paragraphId = `txt-parser-paragraph-${index + 1}`
+        const yPosition = index
+
+        const text = new IntermediateText({
+          id: textId,
+          content: line,
+          fontSize: 1,
+          fontFamily: 'monospace',
+          fontWeight: 400,
+          italic: false,
+          color: '#000000',
+          polygon: [
+            [0, yPosition],
+            [line.length, yPosition],
+            [line.length, yPosition + 1],
+            [0, yPosition + 1]
+          ],
+          lineHeight: 1,
+          ascent: 0.8,
+          descent: 0.2,
+          dir: TextDir.LTR,
+          skew: 0,
+          isEOL: true
+        })
+
+        const paragraph = new IntermediateParagraph({
+          id: paragraphId,
+          x: 0,
+          y: yPosition,
+          width: line.length,
+          height: 1,
+          textIds: [textId]
+        })
+
+        texts.push(text)
+        paragraphs.push(paragraph)
       })
 
       const pagesMap = IntermediatePageMap.makeByInfoList([
@@ -156,8 +168,8 @@ export class TxtParser extends DocumentParser {
               number: 1,
               width,
               height,
-              content: [text],
-              paragraphs: [paragraph],
+              content: texts,
+              paragraphs,
               thumbnail: undefined
             })
         }
@@ -190,8 +202,24 @@ export class TxtParser extends DocumentParser {
       for (const page of pages) {
         const content = await page.getContent()
         const texts = content.filter(isIntermediateTextContent)
-        const pageContent = joinPageTextContent(texts)
-        pageTexts.push(pageContent)
+        
+        if (page.paragraphs && page.paragraphs.length > 0) {
+          const textMap = new Map(texts.map(t => [t.id, t]))
+          const paragraphTexts: string[] = []
+          
+          for (const paragraph of page.paragraphs) {
+            const paragraphContent = paragraph.textIds
+              .map(id => textMap.get(id))
+              .filter((t): t is IntermediateText => t !== undefined)
+              .map(t => t.content)
+              .join('')
+            paragraphTexts.push(paragraphContent)
+          }
+          
+          pageTexts.push(paragraphTexts.join('\n'))
+        } else {
+          pageTexts.push(joinPageTextContent(texts))
+        }
       }
 
       const content = pageTexts.join('\n')
