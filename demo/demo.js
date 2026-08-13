@@ -1,6 +1,6 @@
-import { TxtParser } from '../dist/index.js'
 import { IntermediateDocument } from '@hamster-note/types'
 import VConsole from 'vconsole'
+import { TxtParser } from '../dist/index.js'
 
 // 开发环境启用 vConsole，方便移动端调试
 new VConsole()
@@ -39,21 +39,23 @@ encodeBtn.addEventListener('click', async () => {
     lastDocument = await TxtParser.encode(arrayBuffer)
     const serialized = await IntermediateDocument.serialize(lastDocument)
     documentOutput.textContent = JSON.stringify(serialized, null, 2)
-    
-    const pages = await lastDocument.pages
-    const paragraphs = pages[0]?.paragraphs || []
-    const paragraphsInfo = paragraphs.map(p => ({
-      id: p.id,
-      x: p.x,
-      y: p.y,
-      width: p.width,
-      height: p.height,
-      textIds: p.textIds
-    }))
+
+    const paragraphsInfo = serialized.pages.flatMap(page =>
+      (page.paragraphs || []).map(p => ({
+        pageId: page.id,
+        pageNumber: page.number,
+        id: p.id,
+        x: p.x,
+        y: p.y,
+        width: p.width,
+        height: p.height,
+        textIds: p.textIds
+      }))
+    )
     paragraphsOutput.textContent = JSON.stringify(paragraphsInfo, null, 2)
-    
+
     statusEl.textContent = 'Encode complete'
-    summaryEl.textContent = `Document ID: ${lastDocument.id}, Pages: ${lastDocument.pageCount}, Paragraphs: ${paragraphs.length}`
+    summaryEl.textContent = `Document ID: ${serialized.id}, Pages: ${serialized.pages.length}, Paragraphs: ${paragraphsInfo.length}`
     decodeBtn.disabled = false
   } catch (err) {
     statusEl.textContent = `Error: ${err.message}`
