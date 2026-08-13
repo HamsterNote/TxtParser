@@ -7,6 +7,7 @@ import {
   IntermediateText,
   TextDir
 } from '@hamster-note/types'
+import { joinNonEmptyPages, reconstructPageText } from './textReconstruction'
 
 export const TXT_PARSER_PACKAGE_NAME = '@hamster-note/txt-parser' as const
 
@@ -67,12 +68,6 @@ export function isIntermediateTextContent(
   )
 }
 
-function joinPageTextContent(texts: IntermediateText[]): string {
-  // 外部生成的 IntermediateDocument 常把连续文字拆成单字符 Text。
-  // TXT 解码只还原纯文本内容，页内 Text 之间不能额外补空格或其它分隔符。
-  return texts.map((text) => text.content).join('')
-}
-
 export class TxtParser extends DocumentParser {
   static readonly exts = ['txt'] as const
   static readonly ext = 'txt' as const
@@ -105,57 +100,67 @@ export class TxtParser extends DocumentParser {
       const decoder = new TextDecoder('utf-8', { fatal: true })
       const content = decoder.decode(uint8Array)
 
-      const lines = content.split(/\r\n|\r|\n/)
-      const lineCount = lines.length
-      const longestLineLength = lines.reduce(
-        (max, line) => Math.max(max, line.length),
-        0
-      )
-      const width = Math.max(1, longestLineLength)
-      const height = Math.max(1, lineCount)
-
       const texts: IntermediateText[] = []
       const paragraphs: IntermediateParagraph[] = []
-
-      lines.forEach((line, index) => {
+      let longestLineLength = 0
+      const appendLine = (lineContent: string, visibleWidth: number): void => {
+        const index = texts.length
         const textId = `txt-parser-text-${index + 1}`
-        const paragraphId = `txt-parser-paragraph-${index + 1}`
-        const yPosition = index
+        const y = index
+        longestLineLength = Math.max(longestLineLength, visibleWidth)
+        texts.push(
+          new IntermediateText({
+            id: textId,
+            content: lineContent,
+            fontSize: 1,
+            fontFamily: 'monospace',
+            fontWeight: 400,
+            italic: false,
+            color: '#000000',
+            polygon: [
+              [0, y],
+              [visibleWidth, y],
+              [visibleWidth, y + 1],
+              [0, y + 1]
+            ],
+            lineHeight: 1,
+            ascent: 0.8,
+            descent: 0.2,
+            dir: TextDir.LTR,
+            skew: 0,
+            isEOL: true
+          })
+        )
+        paragraphs.push(
+          new IntermediateParagraph({
+            id: `txt-parser-paragraph-${index + 1}`,
+            x: 0,
+            y,
+            width: visibleWidth,
+            height: 1,
+            textIds: [textId]
+          })
+        )
+      }
 
-        const text = new IntermediateText({
-          id: textId,
-          content: line,
-          fontSize: 1,
-          fontFamily: 'monospace',
-          fontWeight: 400,
-          italic: false,
-          color: '#000000',
-          polygon: [
-            [0, yPosition],
-            [line.length, yPosition],
-            [line.length, yPosition + 1],
-            [0, yPosition + 1]
-          ],
-          lineHeight: 1,
-          ascent: 0.8,
-          descent: 0.2,
-          dir: TextDir.LTR,
-          skew: 0,
-          isEOL: true
-        })
+      const lineEndingPattern = /\r\n|\r|\n/g
+      let lineStart = 0
+      for (
+        let match = lineEndingPattern.exec(content);
+        match !== null;
+        match = lineEndingPattern.exec(content)
+      ) {
+        // 终止符归入所属行的 Text；几何宽度只计算可见字符。
+        appendLine(
+          content.slice(lineStart, lineEndingPattern.lastIndex),
+          match.index - lineStart
+        )
+        lineStart = lineEndingPattern.lastIndex
+      }
+      appendLine(content.slice(lineStart), content.length - lineStart)
 
-        const paragraph = new IntermediateParagraph({
-          id: paragraphId,
-          x: 0,
-          y: yPosition,
-          width: line.length,
-          height: 1,
-          textIds: [textId]
-        })
-
-        texts.push(text)
-        paragraphs.push(paragraph)
-      })
+      const width = Math.max(1, longestLineLength)
+      const height = Math.max(1, texts.length)
 
       const pagesMap = IntermediatePageMap.makeByInfoList([
         {
@@ -191,7 +196,7 @@ export class TxtParser extends DocumentParser {
 
   static async decode(
     intermediateDocument: IntermediateDocument
-  ): Promise<ParserInput> {
+  ): Promise<ArrayBuffer> {
     try {
       const pages = await intermediateDocument.pages
       if (pages.length === 0) {
@@ -202,27 +207,10 @@ export class TxtParser extends DocumentParser {
       for (const page of pages) {
         const content = await page.getContent()
         const texts = content.filter(isIntermediateTextContent)
-        
-        if (page.paragraphs && page.paragraphs.length > 0) {
-          const textMap = new Map(texts.map(t => [t.id, t]))
-          const paragraphTexts: string[] = []
-          
-          for (const paragraph of page.paragraphs) {
-            const paragraphContent = paragraph.textIds
-              .map(id => textMap.get(id))
-              .filter((t): t is IntermediateText => t !== undefined)
-              .map(t => t.content)
-              .join('')
-            paragraphTexts.push(paragraphContent)
-          }
-          
-          pageTexts.push(paragraphTexts.join('\n'))
-        } else {
-          pageTexts.push(joinPageTextContent(texts))
-        }
+        pageTexts.push(reconstructPageText(texts, page.paragraphs))
       }
 
-      const content = pageTexts.join('\n')
+      const content = joinNonEmptyPages(pageTexts)
       const encoder = new TextEncoder()
       return encoder.encode(content).buffer
     } catch (error) {
@@ -240,7 +228,7 @@ export class TxtParser extends DocumentParser {
 
   async decode(
     intermediateDocument: IntermediateDocument
-  ): Promise<ParserInput> {
+  ): Promise<ArrayBuffer> {
     return TxtParser.decode(intermediateDocument)
   }
 }
