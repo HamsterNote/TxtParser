@@ -5,6 +5,18 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，
 本项目遵循 [语义化版本控制](https://semver.org/lang/zh-CN/)。
 
+## [Unreleased]
+
+### 变更
+
+- `TxtParser.encode` 现在会将多行 TXT 按行拆分为多个 `IntermediateText` 和 `IntermediateParagraph`，而不是把包含换行符的内容保存在单个文本对象中。
+
+### 修复
+
+- 增加 `TxtParser.decode` 在页面缺少 paragraph 数据时的 legacy 拼接行为测试覆盖。
+- 修正浏览器 demo 的 paragraph 摘要统计，现在会统计所有页面的 paragraph 数量。
+- 统一浏览器 demo 的 Document Output 与 Paragraphs 面板数据来源，二者都基于同一份序列化文档。
+
 ## [0.2.0] - 2026-06-01
 
 ### 变更

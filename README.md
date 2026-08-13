@@ -8,6 +8,7 @@
 - **inspectTxt** — Inspect TXT input without modifying it
 - **Deterministic encoding** — Convert UTF-8 bytes into `IntermediateDocument` with stable IDs
 - **Deterministic decoding** — Reconstruct UTF-8 bytes from `IntermediateDocument`
+- **Line paragraphs** — Encode each TXT line as its own `IntermediateText` and `IntermediateParagraph`
 - **UTF-8 only** — Non-UTF-8 input will fail with explicit error messages
 - **BOM handling** — UTF-8 BOM (byte order mark) is silently stripped during encode
 
@@ -27,7 +28,7 @@ yarn install
 yarn typecheck          # Type-check the codebase
 yarn test -- --runInBand # Run Jest tests
 yarn build              # Build the package
-yarn dev                # Start demo server on port 8000
+yarn dev                # Start demo server on port 8166
 npm run dev             # Alternative: start demo server
 ```
 
@@ -43,6 +44,9 @@ const doc = await TxtParser.encode(new TextEncoder().encode('Hello'))
 const bytes = await TxtParser.decode(doc)
 const text = new TextDecoder('utf-8').decode(bytes)
 
+// Multiline TXT content is represented as one paragraph per line.
+const multiline = await TxtParser.encode(new TextEncoder().encode('Line 1\nLine 2'))
+
 // Inspect input without modifying it
 import { inspectTxt } from '@hamster-note/txt-parser'
 const info = await inspectTxt(new Blob(['Hello'], { type: 'text/plain' }))
@@ -56,7 +60,7 @@ A static browser demo is available at `demo/index.html`. Start the demo server:
 yarn build && yarn dev
 ```
 
-Then open `http://localhost:8000/demo/index.html` in your browser.
+Then open `http://localhost:8166/demo/index.html` in your browser.
 
 ## API
 
@@ -66,7 +70,7 @@ Extends `DocumentParser` from `@hamster-note/document-parser`.
 
 - `TxtParser.ext` → `'txt'`
 - `TxtParser.exts` → `['txt']`
-- `TxtParser.encode(input)` → Encode UTF-8 bytes into `IntermediateDocument`
+- `TxtParser.encode(input)` → Encode UTF-8 bytes into `IntermediateDocument`; multiline text is split into one text and one paragraph per line
 - `TxtParser.decode(document)` → Decode `IntermediateDocument` back to UTF-8 bytes
 - `TxtParser.inspect(input)` → Inspect input and return metadata
 

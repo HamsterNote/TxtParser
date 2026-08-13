@@ -7,7 +7,14 @@ import {
   IntermediateText,
   TextDir
 } from '@hamster-note/types'
-import { joinNonEmptyPages, reconstructPageText } from './textReconstruction'
+import { isIntermediateTextContent } from './content'
+import {
+  type DecodeInput,
+  decodeDocumentInput,
+  parseSerializedDocument
+} from './decode'
+
+export { isIntermediateTextContent }
 
 export const TXT_PARSER_PACKAGE_NAME = '@hamster-note/txt-parser' as const
 
@@ -50,22 +57,6 @@ function detectInputKind(input: ParserInput): TxtParserInputKind {
 function resolveMimeType(input: ParserInput): string {
   if (isBlob(input) && input.type) return input.type
   return 'text/plain'
-}
-
-export function isIntermediateTextContent(
-  content: unknown
-): content is IntermediateText {
-  return (
-    content instanceof IntermediateText ||
-    (typeof content === 'object' &&
-      content !== null &&
-      'content' in content &&
-      typeof (content as { content?: unknown }).content === 'string' &&
-      'fontSize' in content &&
-      typeof (content as { fontSize?: unknown }).fontSize === 'number' &&
-      'fontFamily' in content &&
-      typeof (content as { fontFamily?: unknown }).fontFamily === 'string')
-  )
 }
 
 export class TxtParser extends DocumentParser {
@@ -195,24 +186,19 @@ export class TxtParser extends DocumentParser {
   }
 
   static async decode(
-    intermediateDocument: IntermediateDocument
+    intermediateDocument: DecodeInput
   ): Promise<ArrayBuffer> {
     try {
-      const pages = await intermediateDocument.pages
+      const document =
+        intermediateDocument instanceof Uint8Array
+          ? parseSerializedDocument(intermediateDocument)
+          : intermediateDocument
+      const pages = await document.pages
       if (pages.length === 0) {
         throw new TxtParserError('TxtParser 解码失败：中间文档不包含可解码页面')
       }
 
-      const pageTexts: string[] = []
-      for (const page of pages) {
-        const content = await page.getContent()
-        const texts = content.filter(isIntermediateTextContent)
-        pageTexts.push(reconstructPageText(texts, page.paragraphs))
-      }
-
-      const content = joinNonEmptyPages(pageTexts)
-      const encoder = new TextEncoder()
-      return encoder.encode(content).buffer
+      return decodeDocumentInput(document)
     } catch (error) {
       if (error instanceof TxtParserError) {
         throw error
@@ -227,7 +213,7 @@ export class TxtParser extends DocumentParser {
   }
 
   async decode(
-    intermediateDocument: IntermediateDocument
+    intermediateDocument: DecodeInput
   ): Promise<ArrayBuffer> {
     return TxtParser.decode(intermediateDocument)
   }

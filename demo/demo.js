@@ -50,22 +50,21 @@ encodeBtn.addEventListener('click', async () => {
     lastDocument = await TxtParser.encode(arrayBuffer)
     const serialized = await IntermediateDocument.serialize(lastDocument)
     documentOutput.textContent = JSON.stringify(serialized, null, 2)
-    const pages = await lastDocument.pages
-    const paragraphs = pages[0]?.paragraphs ?? []
-    paragraphsOutput.textContent = JSON.stringify(
-      paragraphs.map(({ id, x, y, width, height, textIds }) => ({
-        id,
-        x,
-        y,
-        width,
-        height,
-        textIds
-      })),
-      null,
-      2
+    const paragraphsInfo = serialized.pages.flatMap((page) =>
+      (page.paragraphs || []).map((paragraph) => ({
+        pageId: page.id,
+        pageNumber: page.number,
+        id: paragraph.id,
+        x: paragraph.x,
+        y: paragraph.y,
+        width: paragraph.width,
+        height: paragraph.height,
+        textIds: paragraph.textIds
+      }))
     )
+    paragraphsOutput.textContent = JSON.stringify(paragraphsInfo, null, 2)
     statusEl.textContent = 'Encode complete'
-    summaryEl.textContent = `Document ID: ${lastDocument.id}, Pages: ${lastDocument.pageCount}, Paragraphs: ${paragraphs.length}`
+    summaryEl.textContent = `Document ID: ${serialized.id}, Pages: ${serialized.pages.length}, Paragraphs: ${paragraphsInfo.length}`
     decodeBtn.disabled = false
   } catch (err) {
     lastDocument = null

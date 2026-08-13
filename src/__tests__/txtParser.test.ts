@@ -1,4 +1,4 @@
-import type { IntermediatePage, IntermediateText } from '@hamster-note/types'
+import { decodeToString, getTextContents } from '../__testutils__/helpers'
 import {
   inspectTxt,
   isIntermediateTextContent,
@@ -6,13 +6,6 @@ import {
   TxtParser,
   txtParserWorkspaceStatus
 } from '../index'
-
-async function getTextContents(
-  page: IntermediatePage
-): Promise<IntermediateText[]> {
-  const content = await page.getContent()
-  return content.filter(isIntermediateTextContent)
-}
 
 describe('TxtParser', () => {
   describe('exports', () => {
@@ -190,8 +183,7 @@ describe('TxtParser', () => {
       const source = 'Round-trip via instance'
       const doc = await parser.encode(new TextEncoder().encode(source))
       const decoded = await parser.decode(doc)
-      const text = new TextDecoder('utf-8').decode(decoded as ArrayBuffer)
-      expect(text).toBe(source)
+      await expect(decodeToString(decoded)).resolves.toBe(source)
     })
   })
 })
