@@ -28,7 +28,7 @@ yarn install
 yarn typecheck          # Type-check the codebase
 yarn test -- --runInBand # Run Jest tests
 yarn build              # Build the package
-yarn dev                # Start demo server on port 8000
+yarn dev                # Start demo server on port 8166
 npm run dev             # Alternative: start demo server
 ```
 

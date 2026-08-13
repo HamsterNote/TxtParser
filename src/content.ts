@@ -15,9 +15,3 @@ export function isIntermediateTextContent(
       typeof (content as { fontFamily?: unknown }).fontFamily === 'string')
   )
 }
-
-export function joinPageTextContent(
-  texts: readonly IntermediateText[]
-): string {
-  return texts.map((text) => text.content).join('')
-}

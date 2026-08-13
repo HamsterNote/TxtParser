@@ -35,7 +35,7 @@ describe('TxtParser paragraphs', () => {
       'txt-parser-text-2',
       'txt-parser-text-3'
     ])
-    expect(texts.map((text) => text.content)).toEqual(['A', '', '猫猫'])
+    expect(texts.map((text) => text.content)).toEqual(['A\n', '\n', '猫猫'])
     expect(texts.map((text) => text.polygon)).toEqual([
       [
         [0, 0],
